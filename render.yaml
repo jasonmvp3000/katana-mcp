@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: katana-mcp
+    runtime: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: KATANA_API_KEY
+        sync: false        # Render will prompt you to enter this value manually — never commit your API key
+      - key: NODE_ENV
+        value: production
