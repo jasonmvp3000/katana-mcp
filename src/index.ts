@@ -167,6 +167,19 @@ const TOOLS = [
     },
   },
   {
+    name: 'list_materials',
+    description:
+      'List Katana materials (e.g. CONCRETE001, raw inputs used in manufacturing). ' +
+      'Pass search to filter by SKU or name. Note: materials also have variant_id values ' +
+      'which are needed when adding them as line items on a sales order.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        search: { type: 'string', description: 'Filter by SKU or name (case-insensitive)' },
+      },
+    },
+  },
+  {
     name: 'create_sales_order',
     description:
       'Create a Katana sales order with line items. ' +
@@ -183,11 +196,11 @@ const TOOLS = [
           type: 'array',
           items: {
             type: 'object',
-            required: ['variant_id', 'quantity', 'unit_price'],
+            required: ['variant_id', 'quantity', 'price_per_unit'],
             properties: {
               variant_id: { type: 'number' },
               quantity:   { type: 'number' },
-              unit_price: { type: 'number' },
+              price_per_unit: { type: 'number' },
             },
           },
         },
@@ -233,6 +246,20 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
       }
       return JSON.stringify(variants, null, 2);
     }
+    case 'list_materials': {
+      const response = await katana('GET', '/materials');
+      let materials = response.data ?? response;
+      if (args.search) {
+        const q = args.search.toLowerCase();
+        materials = materials.filter(
+          (m: any) =>
+            m.sku?.toLowerCase().includes(q) ||
+            m.name?.toLowerCase().includes(q) ||
+            m.internal_id?.toLowerCase().includes(q)
+        );
+       }
+       return JSON.stringify(materials, null, 2);
+    }
     case 'create_sales_order': {
       const order = await katana('POST', '/sales_orders', {
         customer_id:   args.customer_id,
@@ -241,7 +268,7 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
         sales_order_rows: args.line_items.map((item: any) => ({
           variant_id: item.variant_id,
           quantity:   item.quantity,
-          unit_price: item.unit_price,
+          price_per_unit: item.price_per_unit,
         })),
       });
       return JSON.stringify(order, null, 2);
