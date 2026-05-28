@@ -238,17 +238,13 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
         customer_id:   args.customer_id,
         ...(args.order_no      && { order_no:      args.order_no }),
         ...(args.delivery_date && { delivery_date: args.delivery_date }),
+        sales_order_rows: args.line_items.map((item: any) => ({
+          variant_id: item.variant_id,
+          quantity:   item.quantity,
+          unit_price: item.unit_price,
+        })),
       });
-      const rows: object[] = [];
-      for (const item of args.line_items as Array<{ variant_id: number; quantity: number; unit_price: number }>) {
-        rows.push(await katana('POST', '/sales_order_rows', {
-          sales_order_id: order.id,
-          variant_id:     item.variant_id,
-          quantity:       item.quantity,
-          unit_price:     item.unit_price,
-        }));
-      }
-      return JSON.stringify({ order, rows }, null, 2);
+      return JSON.stringify(order, null, 2);
     }
     default:
       throw new Error(`Unknown tool: ${name}`);
