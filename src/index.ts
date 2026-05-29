@@ -214,6 +214,25 @@ const TOOLS = [
     },
   },
   {
+    name: 'update_sales_order',
+    description:
+      'Update an existing Katana sales order. Use to set order_created_date, delivery_date, ' +
+      'order_no, customer_id, status, or additional_info. Only provided fields are changed.',
+    inputSchema: {
+      type: 'object',
+      required: ['id'],
+      properties: {
+        id:                 { type: 'number', description: 'Katana sales order ID' },
+        order_created_date: { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
+        delivery_date:      { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
+        order_no:           { type: 'string', description: 'Order reference number' },
+        customer_id:        { type: 'number', description: 'Katana customer ID' },
+        status:             { type: 'string', enum: ['NOT_SHIPPED', 'PENDING', 'PACKED', 'DELIVERED'] },
+        additional_info:    { type: 'string' },
+      },
+    },
+  },
+  {
     name: 'create_sales_order',
     description:
       'Create a Katana sales order with line items. ' +
@@ -326,6 +345,17 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
         })),
       });
       return JSON.stringify(order, null, 2);
+    }
+    case 'update_sales_order': {
+      const { id, ...fields } = args;
+      const payload: Record<string, any> = {};
+      if (fields.order_created_date !== undefined) payload.order_created_date = fields.order_created_date;
+      if (fields.delivery_date      !== undefined) payload.delivery_date      = fields.delivery_date;
+      if (fields.order_no           !== undefined) payload.order_no           = fields.order_no;
+      if (fields.customer_id        !== undefined) payload.customer_id        = fields.customer_id;
+      if (fields.status             !== undefined) payload.status             = fields.status;
+      if (fields.additional_info    !== undefined) payload.additional_info    = fields.additional_info;
+      return JSON.stringify(await katana('PATCH', `/sales_orders/${id}`, payload), null, 2);
     }
     default:
       throw new Error(`Unknown tool: ${name}`);
