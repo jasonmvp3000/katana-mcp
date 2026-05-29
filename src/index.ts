@@ -215,16 +215,34 @@ const TOOLS = [
 async function callTool(name: string, args: Record<string, any>): Promise<string> {
   switch (name) {
     case 'list_customers': {
-      const response = await katana('GET', '/customers');
-      let customers = response.data ?? response;
-      if (args.search) {
-        const q = args.search.toLowerCase();
-        customers = customers.filter(
-          (c: any) => c.name?.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q)
-        );
-      }
-      return JSON.stringify(customers, null, 2);
+      const allCustomers: any[] = [];
+      let page = 1;
+
+    while (true) {
+      const response = await katana('GET', `/customers?page=${page}&per_page=50`);
+      const batch = response.data ?? response;
+
+      if (!Array.isArray(batch) || batch.length === 0) break;
+
+      allCustomers.push(...batch);
+
+      // If we got fewer than a full page, we've reached the end
+      if (batch.length < 50) break;
+
+      page++;
     }
+
+    const customers = args.search
+      ? allCustomers.filter(
+          (c: any) =>
+            c.name?.toLowerCase().includes(args.search.toLowerCase()) ||
+            c.email?.toLowerCase().includes(args.search.toLowerCase())
+        )
+      : allCustomers;
+
+    return JSON.stringify(customers, null, 2);
+   }
+    
     case 'create_customer': {
       return JSON.stringify(
         await katana('POST', '/customers', {
