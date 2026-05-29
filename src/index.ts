@@ -134,6 +134,40 @@ async function katana(method: string, path: string, body?: object) {
 }
 
 // --------------------------------------------------------------------------
+// Variant cache — fetches full catalog once, refreshes every 5 minutes
+// --------------------------------------------------------------------------
+let variantCache: any[] = [];
+let variantCacheExpiry = 0;
+const VARIANT_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+async function getAllVariants(): Promise<any[]> {
+  if (Date.now() < variantCacheExpiry && variantCache.length > 0) {
+    return variantCache;
+  }
+
+  const allVariants: any[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await katana('GET', `/variants?page=${page}&per_page=50`);
+    const batch = response.data ?? response;
+
+    if (!Array.isArray(batch) || batch.length === 0) break;
+
+    allVariants.push(...batch);
+
+    if (batch.length < 50) break;
+
+    page++;
+  }
+
+  variantCache = allVariants;
+  variantCacheExpiry = Date.now() + VARIANT_CACHE_TTL_MS;
+
+  return variantCache;
+}
+
+// --------------------------------------------------------------------------
 // MCP tool definitions
 // --------------------------------------------------------------------------
 const TOOLS = [
@@ -254,26 +288,17 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
       );
     }
     case 'list_variants': {
-      const allVariants: any[] = [];
-      let page = 1;
+      const allVariants = await getAllVariants();
 
-      // Build query params — let Katana filter server-side if a search term is provided
-      const searchParam = args.search ? `&search=${encodeURIComponent(args.search)}` : '';
+      const variants = args.search
+        ? allVariants.filter(
+            (v: any) =>
+              v.sku?.toLowerCase().includes(args.search.toLowerCase()) ||
+              v.name?.toLowerCase().includes(args.search.toLowerCase())
+          )
+        : allVariants;
 
-      while (true) {
-        const response = await katana('GET', `/variants?page=${page}&per_page=50${searchParam}`);
-        const batch = response.data ?? response;
-
-        if (!Array.isArray(batch) || batch.length === 0) break;
-
-        allVariants.push(...batch);
-
-        if (batch.length < 50) break;
-
-        page++;
-      }
-
-      return JSON.stringify(allVariants, null, 2);
+      return JSON.stringify(variants, null, 2);
     }
     case 'list_materials': {
       const response = await katana('GET', '/materials');
