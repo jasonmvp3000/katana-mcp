@@ -254,14 +254,30 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
       );
     }
     case 'list_variants': {
-      const response = await katana('GET', '/variants');
-      let variants = response.data ?? response;
-      if (args.search) {
-        const q = args.search.toLowerCase();
-        variants = variants.filter(
-          (v: any) => v.sku?.toLowerCase().includes(q) || v.name?.toLowerCase().includes(q)
-        );
+      const allVariants: any[] = [];
+      let page = 1;
+
+      while (true) {
+        const response = await katana('GET', `/variants?page=${page}&per_page=50`);
+        const batch = response.data ?? response;
+
+        if (!Array.isArray(batch) || batch.length === 0) break;
+
+        allVariants.push(...batch);
+
+        if (batch.length < 50) break;
+
+        page++;
       }
+
+      const variants = args.search
+        ? allVariants.filter(
+          (v: any) =>
+            v.sku?.toLowerCase().includes(args.search.toLowerCase()) ||
+            v.name?.toLowerCase().includes(args.search.toLowerCase())
+          )
+        : allVariants;
+
       return JSON.stringify(variants, null, 2);
     }
     case 'list_materials': {
