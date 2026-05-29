@@ -256,6 +256,7 @@ const TOOLS = [
         order_no:           { type: 'string', description: 'Order reference number' },
         customer_id:        { type: 'number', description: 'Katana customer ID' },
         status:             { type: 'string', enum: ['NOT_SHIPPED', 'PENDING', 'PACKED', 'DELIVERED'] },
+        picked_date:        { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
         additional_info:    { type: 'string' },
       },
     },
@@ -354,6 +355,7 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
       if (fields.order_no           !== undefined) payload.order_no           = fields.order_no;
       if (fields.customer_id        !== undefined) payload.customer_id        = fields.customer_id;
       if (fields.status             !== undefined) payload.status             = fields.status;
+      if (fields.picked_date        !== undefined) payload.picked_date        = fields.picked_date;
       if (fields.additional_info    !== undefined) payload.additional_info    = fields.additional_info;
       return JSON.stringify(await katana('PATCH', `/sales_orders/${id}`, payload), null, 2);
     }
