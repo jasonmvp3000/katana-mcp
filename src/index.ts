@@ -257,8 +257,11 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
       const allVariants: any[] = [];
       let page = 1;
 
+      // Build query params — let Katana filter server-side if a search term is provided
+      const searchParam = args.search ? `&search=${encodeURIComponent(args.search)}` : '';
+
       while (true) {
-        const response = await katana('GET', `/variants?page=${page}&per_page=50`);
+        const response = await katana('GET', `/variants?page=${page}&per_page=50${searchParam}`);
         const batch = response.data ?? response;
 
         if (!Array.isArray(batch) || batch.length === 0) break;
@@ -270,15 +273,7 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
         page++;
       }
 
-      const variants = args.search
-        ? allVariants.filter(
-          (v: any) =>
-            v.sku?.toLowerCase().includes(args.search.toLowerCase()) ||
-            v.name?.toLowerCase().includes(args.search.toLowerCase())
-          )
-        : allVariants;
-
-      return JSON.stringify(variants, null, 2);
+      return JSON.stringify(allVariants, null, 2);
     }
     case 'list_materials': {
       const response = await katana('GET', '/materials');
