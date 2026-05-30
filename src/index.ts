@@ -261,24 +261,41 @@ const TOOLS = [
     },
   },
   {
-  name: 'update_sales_order_fulfillment',
-  description:
-    'Update a Katana sales order fulfillment. Use this to set picked_date, ' +
-    'tracking_number, tracking_url, conversion_rate, or conversion_date. ' +
-    'Requires the fulfillment ID, not the sales order ID — get this from the ' +
-    'fulfillments array on the sales order object.',
-  inputSchema: {
-    type: 'object',
-    required: ['id'],
-    properties: {
-      id:               { type: 'number', description: 'Katana sales order fulfillment ID' },
-      picked_date:      { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
-      tracking_number:  { type: 'string' },
-      tracking_url:     { type: 'string' },
-      conversion_rate:  { type: 'number' },
-      conversion_date:  { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
+    name: 'get_sales_order_fulfillments',
+    description:
+      'Get fulfillment records for a Katana sales order by sales order ID. ' +
+      'Returns fulfillment IDs needed to call update_sales_order_fulfillment. ' +
+      'A sales order may have multiple fulfillments if partially shipped.',
+    inputSchema: {
+      type: 'object',
+      required: ['sales_order_id'],
+      properties: {
+        sales_order_id: {
+          type: 'number',
+          description: 'Katana sales order ID',
+        },
+      },
     },
-   },
+  },
+  {
+    name: 'update_sales_order_fulfillment',
+    description:
+      'Update a Katana sales order fulfillment. Use this to set picked_date, ' +
+      'tracking_number, tracking_url, conversion_rate, or conversion_date. ' +
+      'Requires the fulfillment ID, not the sales order ID — get this from the ' +
+      'fulfillments array on the sales order object.',
+    inputSchema: {
+      type: 'object',
+      required: ['id'],
+      properties: {
+        id:               { type: 'number', description: 'Katana sales order fulfillment ID' },
+        picked_date:      { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
+        tracking_number:  { type: 'string' },
+        tracking_url:     { type: 'string' },
+        conversion_rate:  { type: 'number' },
+        conversion_date:  { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
+      },
+    },
   },
 ];
 
@@ -376,6 +393,11 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
       if (fields.status             !== undefined) payload.status             = fields.status;
       if (fields.additional_info    !== undefined) payload.additional_info    = fields.additional_info;
       return JSON.stringify(await katana('PATCH', `/sales_orders/${id}`, payload), null, 2);
+    }
+    case 'get_sales_order_fulfillments': {
+      if (!args.sales_order_id) throw new Error('sales_order_id is required');
+      const response = await katana('GET', `/sales_order_fulfillments?sales_order_id=${args.sales_order_id}`);
+      return JSON.stringify(response.data ?? response, null, 2);
     }
     case 'update_sales_order_fulfillment': {
       const { id, ...fields } = args;
