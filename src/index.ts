@@ -256,10 +256,29 @@ const TOOLS = [
         order_no:           { type: 'string', description: 'Order reference number' },
         customer_id:        { type: 'number', description: 'Katana customer ID' },
         status:             { type: 'string', enum: ['NOT_SHIPPED', 'PENDING', 'PACKED', 'DELIVERED'] },
-        picked_date:        { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
         additional_info:    { type: 'string' },
       },
     },
+  },
+  {
+  name: 'update_sales_order_fulfillment',
+  description:
+    'Update a Katana sales order fulfillment. Use this to set picked_date, ' +
+    'tracking_number, tracking_url, conversion_rate, or conversion_date. ' +
+    'Requires the fulfillment ID, not the sales order ID — get this from the ' +
+    'fulfillments array on the sales order object.',
+  inputSchema: {
+    type: 'object',
+    required: ['id'],
+    properties: {
+      id:               { type: 'number', description: 'Katana sales order fulfillment ID' },
+      picked_date:      { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
+      tracking_number:  { type: 'string' },
+      tracking_url:     { type: 'string' },
+      conversion_rate:  { type: 'number' },
+      conversion_date:  { type: 'string', description: 'ISO 8601 date-time e.g. 2026-03-14T00:00:00.000Z' },
+    },
+   },
   },
 ];
 
@@ -355,9 +374,18 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
       if (fields.order_no           !== undefined) payload.order_no           = fields.order_no;
       if (fields.customer_id        !== undefined) payload.customer_id        = fields.customer_id;
       if (fields.status             !== undefined) payload.status             = fields.status;
-      if (fields.picked_date        !== undefined) payload.picked_date        = fields.picked_date;
       if (fields.additional_info    !== undefined) payload.additional_info    = fields.additional_info;
       return JSON.stringify(await katana('PATCH', `/sales_orders/${id}`, payload), null, 2);
+    }
+    case 'update_sales_order_fulfillment': {
+      const { id, ...fields } = args;
+      const payload: Record<string, any> = {};
+      if (fields.picked_date     !== undefined) payload.picked_date     = fields.picked_date;
+      if (fields.tracking_number !== undefined) payload.tracking_number = fields.tracking_number;
+      if (fields.tracking_url    !== undefined) payload.tracking_url    = fields.tracking_url;
+      if (fields.conversion_rate !== undefined) payload.conversion_rate = fields.conversion_rate;
+      if (fields.conversion_date !== undefined) payload.conversion_date = fields.conversion_date;
+      return JSON.stringify(await katana('PATCH', `/sales_order_fulfillments/${id}`, payload), null, 2);
     }
     default:
       throw new Error(`Unknown tool: ${name}`);
