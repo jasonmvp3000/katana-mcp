@@ -242,6 +242,24 @@ const TOOLS = [
     },
   },
   {
+    name: 'get_sales_order',
+    description:
+      'Look up a Katana sales order by order number (e.g. "SO-123"). ' +
+      'Returns the full order object including its Katana ID, status, customer_id, ' +
+      'line items, and fulfillments. Use this when you know the order number but ' +
+      'need the Katana ID to call update_sales_order or get_sales_order_fulfillments.',
+    inputSchema: {
+      type: 'object',
+      required: ['order_no'],
+      properties: {
+        order_no: {
+          type: 'string',
+          description: 'The Katana sales order number e.g. "SO-123"',
+        },
+      },
+    },
+  },
+  {
     name: 'update_sales_order',
     description:
       'Update an existing Katana sales order. Use to set order_created_date, delivery_date, ' +
@@ -369,6 +387,13 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
         );
        }
        return JSON.stringify(materials, null, 2);
+    }
+    case 'get_sales_order': {
+      if (!args.order_no) throw new Error('order_no is required');
+      const response = await katana('GET', `/sales_orders?order_no=${encodeURIComponent(args.order_no)}`);
+      const results = response.data ?? response;
+      if (!results.length) throw new Error(`No sales order found with order_no "${args.order_no}"`);
+      return JSON.stringify(results[0], null, 2);
     }
     case 'create_sales_order': {
       const order = await katana('POST', '/sales_orders', {
