@@ -189,6 +189,7 @@ const TOOLS = [
         name:  { type: 'string' },
         email: { type: 'string' },
         phone: { type: 'string' },
+        comment: { type: 'string', description: 'Internal comment or note about the customer' },
       },
     },
   },
@@ -357,6 +358,7 @@ async function callTool(name: string, args: Record<string, any>): Promise<string
           name:  args.name,
           ...(args.email && { email: args.email }),
           ...(args.phone && { phone: args.phone }),
+          ...(args.comment && { comment: args.comment }),
         }),
         null, 2
       );
